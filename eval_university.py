@@ -35,7 +35,7 @@ class Configuration:
     num_workers: int = 0 if os.name == 'nt' else 4 
     
     # train on GPU if available
-    device: str = 'cuda' if torch.cuda.is_available() else 'cpu' 
+    device: str = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
     
 
 #-----------------------------------------------------------------------------#
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # load pretrained Checkpoint    
     if config.checkpoint_start is not None:  
         print("Start from:", config.checkpoint_start)
-        model_state_dict = torch.load(config.checkpoint_start)  
+        model_state_dict = torch.load(config.checkpoint_start, map_location=torch.device('cpu'))
         model.load_state_dict(model_state_dict, strict=False)     
 
     # Data parallel
