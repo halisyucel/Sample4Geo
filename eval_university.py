@@ -31,8 +31,8 @@ class Configuration:
     # Checkpoint to start from
     checkpoint_start = 'pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth'
   
-    # set num_workers to 0 if on Windows
-    num_workers: int = 0 if os.name == 'nt' else 4 
+    # set num_workers to 0 if on Windows or MPS
+    num_workers: int = 0
     
     # train on GPU if available
     device: str = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
@@ -114,7 +114,7 @@ if __name__ == '__main__':
                                        batch_size=config.batch_size,
                                        num_workers=config.num_workers,
                                        shuffle=False,
-                                       pin_memory=True)
+                                       pin_memory=False)
     
     # Query Ground Images Test
     gallery_dataset_test = U1652DatasetEval(data_folder=config.gallery_folder_test,
@@ -128,7 +128,7 @@ if __name__ == '__main__':
                                        batch_size=config.batch_size,
                                        num_workers=config.num_workers,
                                        shuffle=False,
-                                       pin_memory=True)
+                                       pin_memory=False)
     
     print("Query Images Test:", len(query_dataset_test))
     print("Gallery Images Test:", len(gallery_dataset_test))
