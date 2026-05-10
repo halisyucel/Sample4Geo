@@ -85,55 +85,53 @@ Both scripts support `--help` for full argument list.
 
 ---
 
-### 5. Pretrained Weights Download (Partial)
+### 5. Pretrained Weights Download
 
 Downloaded from Google Drive: https://drive.google.com/drive/folders/1PMuUqvDnCb216D8_ZDDJzDD3FxeH5BoA
 
-**Status:**
+All weights available under `pretrained/`:
 
 | Dataset | Weights file | Status |
 |---|---|---|
-| CVUSA | `weights_e40_98.6830.pth` | ✅ Available |
-| CVACT | `weights_e36_90.8149.pth` | ✅ Available |
-| University-1652 | `weights_e1_0.9515.pth` | ⏳ Downloading manually |
-
-The zip extraction partially failed — the university `.pth` file was not extracted. Downloading manually from Drive and placing at:  
-`pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth`
+| University-1652 | `weights_e1_0.9515.pth` | ✅ |
+| VIGOR (same-area) | `weights_e40_0.7786.pth` | ✅ |
+| VIGOR (cross-area) | `weights_e40_0.6109.pth` | ✅ |
+| CVUSA | `weights_e40_98.6830.pth` | ✅ |
+| CVACT | `weights_e36_90.8149.pth` | ✅ |
 
 ---
 
-## In Progress
+## Waiting
 
-- [ ] University-1652 weights download (manual)
+- **University-1652 dataset:** Access request sent to zdzheng12@gmail.com via institutional email. Download link expected within 10 minutes of sending.
+- **VIGOR dataset:** Access request sent via form using institutional email (b2220356137@cs.hacettepe.edu.tr). Waiting for approval.
 
 ---
 
 ## Up Next
 
-1. Download University-1652 dataset from Hugging Face  
-   `load_dataset("layumi/university-1652")`
+1. Receive University-1652 dataset → place under `data/U1652/`  
+   Run conversion script: `python convert_u1652_dataset.py`  
+   *(Note: `layumi/university-1652` on HuggingFace only stores metadata, not images — actual images must come from the original source)*
 
-2. Run conversion script  
-   `python convert_u1652_dataset.py`
-
-3. Run baseline evaluation  
+2. Run baseline evaluation on University-1652  
    `python eval_university.py`  
    → Get R@1, R@5, Hit Rate numbers before any XAI
 
-4. Run XAI on sample query-gallery pairs  
+3. Run XAI on sample query-gallery pairs  
    `python examples/run_gradcam.py ...`  
    `python examples/run_occlusion.py ...`
 
-5. VIGOR dataset (waiting for institutional email access)  
-   Once received: repeat steps 2–4 for VIGOR
+4. Receive VIGOR dataset → repeat steps 1–3 for VIGOR  
+   (`eval_vigor_same.py` and `eval_vigor_cross.py`)
 
-6. Analysis  
+5. Analysis  
    - Compare GradCAM vs Occlusion Sensitivity heatmaps
    - Identify successful vs failed matches, compare their heatmaps
    - Compare University-1652 (drone↔satellite) vs VIGOR (street↔satellite) results
    - Compute and report faithfulness scores
 
-7. Reports  
+6. Reports  
    - Progress report
    - Final report
    - Presentation
