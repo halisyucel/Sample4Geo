@@ -132,26 +132,63 @@ data/U1652/
 
 ---
 
+### 7. Baseline Evaluation — University-1652
+
+**Environment:** MacBook Pro, Apple M4, 16GB RAM (no CUDA GPU)  
+**Command:**
+```bash
+cd /Users/halisyucel/Projects/Sample4Geo
+python3 eval_university.py
+```
+
+**Issues encountered and fixes applied to `eval_university.py`:**
+
+1. **CUDA error on load** — Weights were saved on GPU. Fixed by adding `map_location=torch.device('cpu')` to `torch.load()`.
+
+2. **Device selection** — Original code defaulted to CPU when CUDA unavailable. Updated to prefer MPS (Apple Silicon GPU) when available:
+   ```python
+   device = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
+   ```
+
+3. **`autocast` incompatibility** — `torch.cuda.amp.autocast` crashes on non-CUDA devices. Replaced with a device-aware context manager in `sample4geo/trainer.py` that only activates autocast on CUDA.
+
+4. **`num_workers=4` deadlock on MPS** — macOS multiprocessing + MPS caused the DataLoader to freeze after the first batch. Fixed by setting `num_workers=0`.
+
+5. **`pin_memory=True` warning on MPS** — MPS does not support pinned memory. Set `pin_memory=False` in both DataLoaders.
+
+**Runtime:** ~35 minutes on M4 (CPU+MPS, no CUDA)
+
+**Results:**
+
+| Metric | Result |
+|---|---|
+| Recall@1 | 92.67% |
+| Recall@5 | 97.69% |
+| Recall@10 | 98.24% |
+| Recall@top1% | 98.28% |
+| AP | 93.82% |
+
+Full results saved in `results_university.txt`.  
+Note: Paper reports R@1 = 95.15% — small gap likely due to evaluation config differences.
+
+---
+
 ## Up Next
 
-1. Run baseline evaluation on University-1652  
-   `python eval_university.py`  
-   → Get R@1, R@5, Hit Rate numbers before any XAI
-
-2. Run XAI on sample query-gallery pairs  
+1. Run XAI on sample query-gallery pairs  
    `python examples/run_gradcam.py ...`  
    `python examples/run_occlusion.py ...`
 
-3. Receive VIGOR dataset → repeat steps 1–2 for VIGOR  
+2. Receive VIGOR dataset → run baseline eval, then repeat XAI  
    (`eval_vigor_same.py` and `eval_vigor_cross.py`)
 
-5. Analysis  
+3. Analysis  
    - Compare GradCAM vs Occlusion Sensitivity heatmaps
    - Identify successful vs failed matches, compare their heatmaps
    - Compare University-1652 (drone↔satellite) vs VIGOR (street↔satellite) results
    - Compute and report faithfulness scores
 
-6. Reports  
+4. Reports  
    - Progress report
    - Final report
    - Presentation
