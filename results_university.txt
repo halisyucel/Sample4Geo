@@ -1,0 +1,8 @@
+University-1652 Evaluation Results
+==================================================
+Date      : 2026-05-10 21:43:47
+Model     : convnext_base.fb_in22k_ft_in1k_384
+Dataset   : U1652-D2S
+Checkpoint: pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth
+==================================================
+Recall@1: 92.6668 - Recall@5: 97.6859 - Recall@10: 98.2407 - Recall@top1: 98.2829 - AP: 93.8195
