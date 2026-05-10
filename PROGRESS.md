@@ -103,26 +103,46 @@ All weights available under `pretrained/`:
 
 ## Waiting
 
-- **University-1652 dataset:** Access request sent to zdzheng12@gmail.com via institutional email. Download link expected within 10 minutes of sending.
 - **VIGOR dataset:** Access request sent via form using institutional email (b2220356137@cs.hacettepe.edu.tr). Waiting for approval.
+
+---
+
+### 6. University-1652 Dataset
+
+Downloaded directly from the original source (Google Drive, sent by dataset author via institutional email request to zdzheng12@gmail.com).
+
+**Download link:** https://drive.google.com/file/d/1iVnP4gjw-iHXa0KerZQ1IfIO0i1jADsR/view
+
+Placed under `data/U1652/`. Dataset arrived in the correct folder structure — no conversion needed.
+
+```
+data/U1652/
+├── train/
+│   ├── drone/
+│   ├── satellite/
+│   ├── google/
+│   └── street/
+└── test/
+    ├── query_drone/
+    ├── gallery_satellite/
+    ├── query_satellite/
+    ├── gallery_drone/
+    └── ...
+```
 
 ---
 
 ## Up Next
 
-1. Receive University-1652 dataset → place under `data/U1652/`  
-   Run conversion script: `python convert_u1652_dataset.py`  
-   *(Note: `layumi/university-1652` on HuggingFace only stores metadata, not images — actual images must come from the original source)*
-
-2. Run baseline evaluation on University-1652  
+1. Run baseline evaluation on University-1652  
    `python eval_university.py`  
    → Get R@1, R@5, Hit Rate numbers before any XAI
 
-3. Run XAI on sample query-gallery pairs  
+2. Run XAI on sample query-gallery pairs  
    `python examples/run_gradcam.py ...`  
    `python examples/run_occlusion.py ...`
 
-4. Receive VIGOR dataset → repeat steps 1–3 for VIGOR  
+3. Receive VIGOR dataset → repeat steps 1–2 for VIGOR  
    (`eval_vigor_same.py` and `eval_vigor_cross.py`)
 
 5. Analysis  
