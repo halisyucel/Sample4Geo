@@ -1,5 +1,6 @@
 import os
 import torch
+from datetime import datetime
 from dataclasses import dataclass
 from torch.utils.data import DataLoader
 
@@ -136,11 +137,24 @@ if __name__ == '__main__':
 
     print("\n{}[{}]{}".format(30*"-", "University-1652", 30*"-"))  
 
-    r1_test = evaluate(config=config,
-                       model=model,
-                       query_loader=query_dataloader_test,
-                       gallery_loader=gallery_dataloader_test, 
-                       ranks=[1, 5, 10],
-                       step_size=1000,
-                       cleanup=True)
- 
+    r1_test, result_str = evaluate(config=config,
+                                   model=model,
+                                   query_loader=query_dataloader_test,
+                                   gallery_loader=gallery_dataloader_test,
+                                   ranks=[1, 5, 10],
+                                   step_size=1000,
+                                   cleanup=True)
+
+    # Save results to file
+    results_path = "results_university.txt"
+    with open(results_path, "w") as f:
+        f.write("University-1652 Evaluation Results\n")
+        f.write("=" * 50 + "\n")
+        f.write(f"Date      : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Model     : {config.model}\n")
+        f.write(f"Dataset   : {config.dataset}\n")
+        f.write(f"Checkpoint: {config.checkpoint_start}\n")
+        f.write("=" * 50 + "\n")
+        f.write(result_str + "\n")
+    print(f"\nResults saved to: {results_path}")
+

@@ -47,15 +47,16 @@ def evaluate(config,
     string.append('Recall@top1: {:.4f}'.format(CMC[top1]*100))
     string.append('AP: {:.4f}'.format(AP))             
         
-    print(' - '.join(string)) 
-    
+    result_str = ' - '.join(string)
+    print(result_str)
+
     # cleanup and free memory on GPU
     if cleanup:
         del img_features_query, ids_query, img_features_gallery, ids_gallery
         gc.collect()
         #torch.cuda.empty_cache()
-    
-    return CMC[0]
+
+    return CMC[0], result_str
 
 
 def eval_query(qf,ql,gf,gl):
