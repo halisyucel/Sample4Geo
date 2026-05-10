@@ -97,6 +97,8 @@ def convert_u1652_dataset(output_dir="data/U1652", split_limit=None):
                 save_path = f"{folder}/image-{existing:02d}.jpg"
             
             if not os.path.exists(save_path):
+                if isinstance(img, str):
+                    img = Image.open(img)
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
                 img.save(save_path, 'JPEG', quality=95)
