@@ -1,0 +1,145 @@
+============================================================
+  SUCCESSFUL matches
+============================================================
+
+--- Pair 1 | Query building: 0811 | Top-1: 0811 | Sim: 0.8008 ---
+  Query : data/U1652/test/query_drone/0811/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0811/0811.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0811/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0811/0811.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/successful_01
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0811/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0811/0811.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/successful_01 \
+      --patch-size 64 --stride 16
+
+--- Pair 2 | Query building: 0760 | Top-1: 0760 | Sim: 0.7375 ---
+  Query : data/U1652/test/query_drone/0760/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0760/0760.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0760/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0760/0760.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/successful_02
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0760/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0760/0760.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/successful_02 \
+      --patch-size 64 --stride 16
+
+--- Pair 3 | Query building: 0799 | Top-1: 0799 | Sim: 0.6825 ---
+  Query : data/U1652/test/query_drone/0799/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0799/0799.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0799/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0799/0799.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/successful_03
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0799/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0799/0799.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/successful_03 \
+      --patch-size 64 --stride 16
+
+--- Pair 4 | Query building: 0069 | Top-1: 0069 | Sim: 0.7181 ---
+  Query : data/U1652/test/query_drone/0069/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0069/0069.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0069/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0069/0069.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/successful_04
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0069/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0069/0069.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/successful_04 \
+      --patch-size 64 --stride 16
+
+--- Pair 5 | Query building: 0023 | Top-1: 0023 | Sim: 0.6946 ---
+  Query : data/U1652/test/query_drone/0023/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0023/0023.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0023/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0023/0023.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/successful_05
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0023/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0023/0023.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/successful_05 \
+      --patch-size 64 --stride 16
+============================================================
+  FAILED matches
+============================================================
+
+--- Pair 1 | Query building: 0768 | Top-1: 0761 | Sim: 0.8302 ---
+  Query : data/U1652/test/query_drone/0768/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0761/0761.jpg
+  Gallery (correct):     data/U1652/test/gallery_satellite/0768/0768.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0768/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0761/0761.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/failed_01
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0768/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0761/0761.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/failed_01 \
+      --patch-size 64 --stride 16
+
+--- Pair 2 | Query building: 0045 | Top-1: 0507 | Sim: 0.5142 ---
+  Query : data/U1652/test/query_drone/0045/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0507/0507.jpg
+  Gallery (correct):     data/U1652/test/gallery_satellite/0045/0045.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0045/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0507/0507.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/failed_02
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0045/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0507/0507.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/failed_02 \
+      --patch-size 64 --stride 16
+
+--- Pair 3 | Query building: 0057 | Top-1: 0063 | Sim: 0.6189 ---
+  Query : data/U1652/test/query_drone/0057/image-01.jpeg
+  Gallery (top-1 match): data/U1652/test/gallery_satellite/0063/0063.jpg
+  Gallery (correct):     data/U1652/test/gallery_satellite/0057/0057.jpg
+
+  python3 examples/run_gradcam.py \
+      --query data/U1652/test/query_drone/0057/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0063/0063.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/gradcam/failed_03
+
+  python3 examples/run_occlusion.py \
+      --query data/U1652/test/query_drone/0057/image-01.jpeg \
+      --gallery data/U1652/test/gallery_satellite/0063/0063.jpg \
+      --checkpoint pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth \
+      --output xai_results/occlusion/failed_03 \
+      --patch-size 64 --stride 16
