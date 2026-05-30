@@ -1,6 +1,5 @@
 import os
 import torch
-from datetime import datetime
 from dataclasses import dataclass
 from torch.utils.data import DataLoader
 
@@ -32,11 +31,11 @@ class Configuration:
     # Checkpoint to start from
     checkpoint_start = 'pretrained/university/convnext_base.fb_in22k_ft_in1k_384/weights_e1_0.9515.pth'
   
-    # set num_workers to 0 if on Windows or MPS
-    num_workers: int = 0
+    # set num_workers to 0 if on Windows
+    num_workers: int = 0 if os.name == 'nt' else 4 
     
     # train on GPU if available
-    device: str = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
+    device: str = 'cuda' if torch.cuda.is_available() else 'cpu' 
     
 
 #-----------------------------------------------------------------------------#
@@ -80,7 +79,7 @@ if __name__ == '__main__':
     # load pretrained Checkpoint    
     if config.checkpoint_start is not None:  
         print("Start from:", config.checkpoint_start)
-        model_state_dict = torch.load(config.checkpoint_start, map_location=torch.device('cpu'))
+        model_state_dict = torch.load(config.checkpoint_start)  
         model.load_state_dict(model_state_dict, strict=False)     
 
     # Data parallel
@@ -115,7 +114,7 @@ if __name__ == '__main__':
                                        batch_size=config.batch_size,
                                        num_workers=config.num_workers,
                                        shuffle=False,
-                                       pin_memory=False)
+                                       pin_memory=True)
     
     # Query Ground Images Test
     gallery_dataset_test = U1652DatasetEval(data_folder=config.gallery_folder_test,
@@ -129,7 +128,7 @@ if __name__ == '__main__':
                                        batch_size=config.batch_size,
                                        num_workers=config.num_workers,
                                        shuffle=False,
-                                       pin_memory=False)
+                                       pin_memory=True)
     
     print("Query Images Test:", len(query_dataset_test))
     print("Gallery Images Test:", len(gallery_dataset_test))
@@ -137,24 +136,10 @@ if __name__ == '__main__':
 
     print("\n{}[{}]{}".format(30*"-", "University-1652", 30*"-"))  
 
-    r1_test, result_str = evaluate(config=config,
-                                   model=model,
-                                   query_loader=query_dataloader_test,
-                                   gallery_loader=gallery_dataloader_test,
-                                   ranks=[1, 5, 10],
-                                   step_size=1000,
-                                   cleanup=True)
-
-    # Save results to file
-    results_path = "results_university.txt"
-    with open(results_path, "w") as f:
-        f.write("University-1652 Evaluation Results\n")
-        f.write("=" * 50 + "\n")
-        f.write(f"Date      : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"Model     : {config.model}\n")
-        f.write(f"Dataset   : {config.dataset}\n")
-        f.write(f"Checkpoint: {config.checkpoint_start}\n")
-        f.write("=" * 50 + "\n")
-        f.write(result_str + "\n")
-    print(f"\nResults saved to: {results_path}")
-
+    r1_test = evaluate(config=config,
+                       model=model,
+                       query_loader=query_dataloader_test,
+                       gallery_loader=gallery_dataloader_test, 
+                       ranks=[1, 5, 10],
+                       step_size=1000,
+                       cleanup=True)
