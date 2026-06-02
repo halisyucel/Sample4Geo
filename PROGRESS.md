@@ -106,22 +106,21 @@ VIGOR/
 
 ---
 
-### 6. Baseline Evaluation — University-1652 (Mac, archived)
+### 6. Baseline Evaluation — University-1652
 
-This evaluation was originally run locally on a MacBook Pro M4 before the Colab migration.  
-The eval script required several fixes for Mac/MPS compatibility — these have since been reverted.
+**Results (Colab A100, 2026-06-02):**
 
-**Results (Mac run, 2026-05-10):**
+| Metric | Result | Paper |
+|---|---|---|
+| Recall@1 | 92.66% | 95.15% |
+| Recall@5 | 97.69% | — |
+| Recall@10 | 98.24% | — |
+| Recall@top1% | 98.29% | — |
+| AP | 93.81% | — |
 
-| Metric | Result |
-|---|---|
-| Recall@1 | 92.67% |
-| Recall@5 | 97.69% |
-| Recall@10 | 98.24% |
-| Recall@top1% | 98.28% |
-| AP | 93.82% |
+Note: The ~2.5% gap vs paper is consistent across both Mac (MPS) and Colab (CUDA) runs, suggesting it is not a hardware/precision issue. Likely caused by a difference in eval split or test-time augmentation in the original paper setup.
 
-Note: Paper reports R@1 = 95.15%. Will re-run on Colab with CUDA for a cleaner result.
+**Runtime note:** Feature extraction took 2h 9m due to reading 37,855 files from Drive (~26s/batch on A100). Fixed by copying dataset to local Colab disk first (see Section 9.5 below).
 
 ---
 
@@ -246,7 +245,25 @@ Tried to use `jupyter-mcp-server` (datalayer) to edit the notebook interactively
 1. MCP server v1.0.0 introduced a breaking change requiring `MCP_TOKEN` in the client config — this was missing from `~/.config/opencode/opencode.json`. Added `"MCP_TOKEN": ""` to the environment block.
 2. Even after connecting, `read_notebook` / `read_cell` returned 404 because those tools use the `/api/collaboration/session/` endpoint which requires the `jupyter-collaboration` extension to be active. The extension was installed (`jupyter-collaboration==4.0.2`) but the endpoint was not responding correctly with the running server config.
 
-Resolution: abandoned the MCP approach and edited the notebook as JSON directly via inline Python in bash. The `MCP_TOKEN` fix remains in the OpenCode config for future sessions (requires OpenCode restart to take effect).
+#### 9.5 Dataset Copy to Local Disk
+
+After the first Colab run, feature extraction took **2h 9m** for U1652 on an A100 — entirely due to Drive I/O latency when reading 37,855 small files (~26s/batch). GPU utilization was near zero.
+
+Fix: added two copy cells to Section 2 of the notebook that copy datasets to Colab local disk before eval:
+
+| Dataset | Source (Drive) | Destination (local) | Est. copy time |
+|---|---|---|---|
+| U1652 test | `vision-datasets/University-Release/test/` | `/content/u1652/` | ~3-5 min |
+| VIGOR | `vision-datasets/VIGOR/{city}/panorama+satellite/` | `/content/vigor_local/` | ~10-20 min |
+
+VIGOR splits (small `.txt` files) still symlink to Drive. Copy is skipped if already present (idempotent).  
+`cfg_u.query_folder_test` and `cfg_u.gallery_folder_test` updated to point to local paths.
+
+#### 9.6 `trainer.py` — autocast Fix
+
+`from torch.cuda.amp import autocast` → `from torch.amp import autocast`  
+`with autocast():` → `with autocast('cuda'):`  
+Removes FutureWarning on PyTorch ≥ 2.4.
 
 ---
 
