@@ -2,7 +2,7 @@ import time
 import torch
 from tqdm import tqdm
 from .utils import AverageMeter
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 import torch.nn.functional as F
 
 def train(train_config, model, dataloader, loss_function, optimizer, scheduler=None, scaler=None):
@@ -29,7 +29,7 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
     for query, reference, ids in bar:
         
         if scaler:
-            with autocast():
+            with autocast('cuda'):
             
                 # data (batches) to device   
                 query = query.to(train_config.device)
@@ -132,7 +132,7 @@ def predict(train_config, model, dataloader):
         
             ids_list.append(ids)
             
-            with autocast():
+            with autocast('cuda'):
          
                 img = img.to(train_config.device)
                 img_feature = model(img)
