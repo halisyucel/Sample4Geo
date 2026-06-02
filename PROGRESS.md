@@ -1,6 +1,6 @@
 # Project Progress Log
 
-**Course:** Hacettepe University — Computer Vision  
+**Course:** Hacettepe University — BBM416 Computer Vision  
 **Topic:** Explainable AI (XAI) on Cross-View Geo-Localization  
 **Base paper:** Sample4Geo (ICCV 2023)  
 **Fork:** https://github.com/halisyucel/Sample4Geo  
@@ -156,7 +156,7 @@ Full pipeline notebook designed for Google Colab with CUDA.
 | Section | Content |
 |---|---|
 | 0 | Environment setup: Drive mount, repo clone, `pip install`, path config |
-| 1 | Pretrained weights download via `gdown` |
+| 1 | Pretrained weights — existence check (weights loaded directly from Drive) |
 | 2 | Dataset path setup + VIGOR symlink fix |
 | 3 | Baseline eval — University-1652 (D2S) |
 | 4 | Baseline eval — VIGOR same-area and cross-area |
@@ -175,6 +175,78 @@ Full pipeline notebook designed for Google Colab with CUDA.
 - Hook cleanup via `remove_hooks()` to prevent memory accumulation across cells
 - Faithfulness fix: uses `reshape` instead of `view` to handle non-contiguous tensors
 - Results auto-saved to `MyDrive/vision-datasets/xai_results/` at the end
+- `OcclusionSensitivity` uses batched forward passes (batch=32, stride=32) for ~110× speedup over naive per-position loop
+
+---
+
+### 9. Notebook Revision — Syntax, Structure & Optimization (2026-06-02)
+
+A second pass over `notebooks/sample4geo-xai.ipynb` covering style, correctness, and performance.
+
+---
+
+#### 9.1 Pretrained Weights: from zip to direct Drive path
+
+Originally the notebook downloaded a `pretrained.zip` from Drive and extracted it into the repo directory at runtime. This was replaced:
+
+- Weights are now stored already-extracted at `MyDrive/vision-datasets/pretrained/` on Drive.
+- `PRETRAINED_DIR` was changed from `f'{REPO_DIR}/pretrained'` → `f'{DRIVE_ROOT}/pretrained'`.
+- The entire zip extraction cell was removed; only a checkpoint existence check remains.
+
+**Why:** avoids re-extracting on every Colab session and keeps the repo directory clean.
+
+---
+
+#### 9.2 Code Style Pass
+
+All code cells were updated for consistency:
+
+- **Comments:** lowercase throughout; decorative separators (`# ── text ──────`) stripped down to plain `# text`.
+- **Print strings:** lowercase throughout; f-string variable parts and path strings left untouched.
+- **Informative prints added** at the end of key cells: checkpoint verification, symlink setup, GPU check, model loading, feature extraction, pair selection, and final save.
+- **Cell outputs cleared** — notebook committed clean (no stale execution outputs).
+
+---
+
+#### 9.3 Intro Cell Updated
+
+- Added course code: **BBM416**
+- Added group members: Halis Yücel (VIGOR) and Kuzey Ersoy (University-1652)
+- Added public Drive link for datasets & weights:  
+  https://drive.google.com/drive/folders/1m85pmQhE_iMRUbc173Z81Gs3ID5-wD2C?usp=sharing
+
+---
+
+#### 9.4 Occlusion Sensitivity — Batched Rewrite (major speedup)
+
+The original `compute_sensitivity` loop did one forward pass per patch position — 441 passes per image with `patch=64, stride=16` on a 384×384 input.
+
+**Bottleneck analysis:**
+- Positions per image: `((384-64)/16 + 1)² = 441`
+- Per pair (query + gallery): 882 forward passes
+- 8 U1652 pairs + VIGOR pairs + faithfulness steps → easily thousands of forward passes total
+- On A100 this was still taking many minutes per dataset
+
+**Changes made:**
+
+| Change | Effect |
+|---|---|
+| Batch patch positions (batch_size=32) | ~110× fewer kernel launches |
+| `stride` 16 → 32 | 441 → 121 positions per image |
+| `torch.no_grad()` → `torch.inference_mode()` | small additional speedup |
+| `STRIDE = 32` in parameter cell | consistent with new default |
+
+New position count: `((384-64)/32 + 1)² = 121` → with batch=32: **4 forward passes per image** (was 441).
+
+**Heatmap quality:** slightly coarser grid but fully adequate for presentation and qualitative analysis.
+
+**Attempted during this session (abandoned):**
+
+Tried to use `jupyter-mcp-server` (datalayer) to edit the notebook interactively instead of via raw JSON. Ran into two issues:
+1. MCP server v1.0.0 introduced a breaking change requiring `MCP_TOKEN` in the client config — this was missing from `~/.config/opencode/opencode.json`. Added `"MCP_TOKEN": ""` to the environment block.
+2. Even after connecting, `read_notebook` / `read_cell` returned 404 because those tools use the `/api/collaboration/session/` endpoint which requires the `jupyter-collaboration` extension to be active. The extension was installed (`jupyter-collaboration==4.0.2`) but the endpoint was not responding correctly with the running server config.
+
+Resolution: abandoned the MCP approach and edited the notebook as JSON directly via inline Python in bash. The `MCP_TOKEN` fix remains in the OpenCode config for future sessions (requires OpenCode restart to take effect).
 
 ---
 
@@ -200,4 +272,4 @@ Full pipeline notebook designed for Google Colab with CUDA.
 5. **Reports**
    - Progress report
    - Final report
-   - Presentation
+   - Presentation (video)
