@@ -352,7 +352,8 @@ On resume, already-saved pairs are detected and skipped; only remaining pairs ar
 
 1. **Run notebook on Colab**
    - ~~Section 3: University-1652 baseline~~ ✅ R@1=92.66%
-   - Section 4: VIGOR same-area and cross-area baselines
+   - ~~Section 4: VIGOR same-area baseline~~ ✅ R@1=77.86% (see Section 10)
+   - Section 4: VIGOR cross-area baseline — pending
    - Sections 6–11: full XAI pipeline for both datasets
 
 2. **Debug path lookup for U1652DatasetEval**
@@ -371,3 +372,75 @@ On resume, already-saved pairs are detected and skipped; only remaining pairs ar
    - Progress report
    - Final report
    - Presentation (video)
+
+---
+
+### 10. Baseline Evaluation — VIGOR Same-Area
+
+**Results (Colab A100, 2026-06-05):**
+
+| Metric | Result | Paper |
+|---|---|---|
+| Recall@1 | 77.86% | 77.86% |
+| Recall@5 | 95.68% | — |
+| Recall@10 | 97.22% | — |
+| Recall@top1% | 99.61% | — |
+| Hit_Rate | 89.83% | — |
+
+R@1 matches the paper exactly (pretrained weight filename `weights_e40_0.7786.pth`). Feature extraction on A100: ref loader 354 batches × ~11s/batch ≈ 1h05m; query loader 206 batches × ~15s/batch ≈ 51m. Total ~1h57m. Features saved to Drive cache (`vigor_same_features.pt`).
+
+---
+
+### 11. Bug Fixes — `evaluate/vigor.py` (2026-06-05)
+
+Three bugs found and fixed during VIGOR same-area eval run.
+
+#### 11.1 `calculate_scores` — Q×R similarity matrix OOM
+
+The original implementation built the full Q×R similarity matrix in CPU RAM before iterating:
+
+```python
+similarity = []
+for i in range(steps):
+    sim_tmp = query_features[start:end] @ reference_features.T
+    similarity.append(sim_tmp.cpu())
+similarity = torch.cat(similarity, dim=0)  # full Q×R in RAM
+```
+
+For VIGOR same-area: Q=52,605, R=90,618 → **~19 GB** CPU RAM. For cross-area: ~**38 GB**. This caused a ~40-minute hang (Colab paging to swap) with no visible progress.
+
+**Fix:** streaming approach — process each batch, accumulate results immediately, delete batch:
+
+```python
+for s in range(steps):
+    sim_batch = (query_features[start:end] @ reference_features.T).cpu()
+    # accumulate results per query
+    del sim_batch
+```
+
+Peak RAM during score computation now: one batch × R ≈ `step_size × R × 4 bytes` = 1000 × 90k × 4 ≈ **360 MB**.
+
+#### 11.2 `evaluate()` — missing `result_str` in return value
+
+`evaluate()` returned only `r1` (a `numpy.float64`), but notebook's `run_vigor_eval` expected `(r1, result_str)`. Caused `TypeError: cannot unpack non-iterable numpy.float64 object` after 2 hours of feature extraction.
+
+Fixed: `calculate_scores` now returns `(results[0], ' - '.join(string))`, and `evaluate()` propagates the tuple.
+
+#### 11.3 Notebook cell 16 — stale module import cache
+
+After `git pull` in a live Colab session, Python's `sys.modules` retained the old `sample4geo.evaluate.vigor` module. Re-running the cell re-executed `from sample4geo.evaluate.vigor import evaluate` but the cached module was served, not the updated file.
+
+Fixed: cell 16 now starts with:
+```python
+import importlib, sys
+for _mod in list(sys.modules):
+    if _mod.startswith('sample4geo'):
+        del sys.modules[_mod]
+```
+This forces a clean re-import of all `sample4geo.*` submodules every time the cell runs.
+
+#### 11.4 Notebook cell 16 — `IndentationError`
+
+A previous cleanup pass (removing `cfg_tmp`) left an orphan `'        '` line (8 spaces, no newline) in the cell source JSON. Python tokenizer concatenated it with the next line, producing 16-space indentation inside an `else:` block.
+
+Fixed: removed the orphan line from the notebook JSON directly.
