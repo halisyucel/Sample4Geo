@@ -24,14 +24,14 @@ def evaluate(config,
         query_features, query_labels = predict(config, model, query_dataloader)
     
     print("Compute Scores:")
-    r1 =  calculate_scores(query_features, reference_features, query_labels, reference_labels, step_size=step_size, ranks=ranks) 
-        
+    r1, result_str = calculate_scores(query_features, reference_features, query_labels, reference_labels, step_size=step_size, ranks=ranks)
+
     # cleanup and free memory on GPU
     if cleanup:
         del reference_features, reference_labels, query_features, query_labels
         gc.collect()
-        
-    return r1
+
+    return r1, result_str
 
 
 def calc_sim(config,
@@ -71,86 +71,72 @@ def calculate_scores(query_features, reference_features, query_labels, reference
     topk = copy.deepcopy(ranks)
     Q = len(query_features)
     R = len(reference_features)
-    
-    steps = Q // step_size + 1
-    
-    
+
     query_labels_np = query_labels.cpu().numpy()
     reference_labels_np = reference_labels.cpu().numpy()
-    
+
     ref2index = dict()
     for i, idx in enumerate(reference_labels_np):
         ref2index[idx] = i
-    
-    
-    similarity = []
-    
-    for i in range(steps):
-        
-        start = step_size * i
-        
-        end = start + step_size
-          
-        sim_tmp = query_features[start:end] @ reference_features.T
-        
-        similarity.append(sim_tmp.cpu())
-     
-    # matrix Q x R
-    similarity = torch.cat(similarity, dim=0)
-    
 
-    topk.append(R//100)
-    
-    results = np.zeros([len(topk)])
-    
+    topk_full = topk + [R // 100]
+    results = np.zeros(len(topk_full))
     hit_rate = 0.0
-    
-    bar = tqdm(range(Q))
-    
-    for i in bar:
-        
-        # similiarity value of gt reference
-        gt_sim = similarity[i, ref2index[query_labels_np[i][0]]]
-        
-        # number of references with higher similiarity as gt
-        higher_sim = similarity[i,:] > gt_sim
-        
-         
-        ranking = higher_sim.sum()
-        for j, k in enumerate(topk):
-            if ranking < k:
-                results[j] += 1.
-                        
-        # mask for semi pos
-        mask = torch.ones(R)
-        for near_pos in query_labels_np[i][1:]:
-            mask[ref2index[near_pos]] = 0
-        
-        # calculate hit rate
-        hit = (higher_sim * mask).sum()
-        if hit < 1:
-            hit_rate += 1.0
-                
-    
-    results = results/ Q * 100.
-    hit_rate = hit_rate / Q * 100
-    
-    bar.close()
-    
-    # wait to close pbar
-    time.sleep(0.1)
-    
-    string = []
-    for i in range(len(topk)-1):
-        
-        string.append('Recall@{}: {:.4f}'.format(topk[i], results[i]))
-        
-    string.append('Recall@top1: {:.4f}'.format(results[-1]))
-    string.append('Hit_Rate: {:.4f}'.format(hit_rate))             
-        
-    print(' - '.join(string)) 
 
-    return results[0]
+    # streaming: process one batch at a time to avoid building Q×R matrix in RAM
+    # (same-area: ~14 GB, cross-area: ~29 GB — would OOM on standard Colab)
+    steps = (Q + step_size - 1) // step_size
+    bar = tqdm(total=Q, desc='computing scores')
+
+    for s in range(steps):
+        start = s * step_size
+        end = min(start + step_size, Q)
+        if start >= Q:
+            break
+
+        # (batch, R) on GPU → CPU immediately; frees GPU memory each step
+        sim_batch = (query_features[start:end] @ reference_features.T).cpu()
+
+        for j in range(end - start):
+            i = start + j
+            gt_idx = ref2index[query_labels_np[i][0]]
+            gt_sim = sim_batch[j, gt_idx]
+            higher_sim = sim_batch[j] > gt_sim
+            ranking = higher_sim.sum().item()
+
+            for k_idx, k in enumerate(topk_full):
+                if ranking < k:
+                    results[k_idx] += 1.
+
+            # hit rate: mask out near-positive references
+            mask = torch.ones(R, dtype=torch.bool)
+            for near_pos in query_labels_np[i][1:]:
+                if near_pos in ref2index:
+                    mask[ref2index[near_pos]] = False
+
+            hit = (higher_sim & mask).sum().item()
+            if hit < 1:
+                hit_rate += 1.0
+
+            bar.update(1)
+
+        del sim_batch
+
+    bar.close()
+    time.sleep(0.1)
+
+    results = results / Q * 100.
+    hit_rate = hit_rate / Q * 100
+
+    string = []
+    for i in range(len(topk_full) - 1):
+        string.append('Recall@{}: {:.4f}'.format(topk_full[i], results[i]))
+    string.append('Recall@top1: {:.4f}'.format(results[-1]))
+    string.append('Hit_Rate: {:.4f}'.format(hit_rate))
+
+    print(' - '.join(string))
+
+    return results[0], ' - '.join(string)
 
 def calculate_scores_train(query_features, reference_features, query_labels, reference_labels, step_size=1000, ranks=[1,5,10]):
 
