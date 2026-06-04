@@ -352,12 +352,12 @@ On resume, already-saved pairs are detected and skipped; only remaining pairs ar
 
 1. **Run notebook on Colab**
    - ~~Section 3: University-1652 baseline~~ ✅ R@1=92.66%
-   - ~~Section 4: VIGOR same-area baseline~~ ✅ R@1=77.86% (see Section 10)
-   - Section 4: VIGOR cross-area baseline — pending
-   - Sections 6–11: full XAI pipeline for both datasets
+   - ~~Section 4: VIGOR same-area baseline~~ ✅ R@1=77.86%
+   - ~~Section 4: VIGOR cross-area baseline~~ ✅ R@1=61.71%
+   - ~~Section 6: U1652 pair selection~~ ✅ 5 successful + 3 failed
+   - Sections 7–11: XAI pipeline (GradCAM + Occlusion for both datasets)
 
-2. **Debug path lookup for U1652DatasetEval**
-   - Section 6 has a `TODO` to check the exact attribute name for image paths (`.samples`, `.img_paths`, etc.)
+2. ~~Debug path lookup for U1652DatasetEval~~ ✅ `.images` (see Section 12)
 
 3. **Debug path lookup for VigorDatasetEval**
    - Section 9/10 uses `idx2ground_path` and `idx2sat_path` — verify these exist
@@ -375,7 +375,36 @@ On resume, already-saved pairs are detected and skipped; only remaining pairs ar
 
 ---
 
-### 10. Baseline Evaluation — VIGOR Same-Area
+### 12. Baseline Evaluation — VIGOR Cross-Area
+
+**Results (Colab A100, 2026-06-05):**
+
+| Metric | Result | Paper |
+|---|---|---|
+| Recall@1 | 61.71% | 61.09% |
+| Recall@5 | 83.51% | — |
+| Recall@10 | 87.99% | — |
+| Recall@top1% | 99.39% | — |
+| Hit_Rate | 77.64% | — |
+
+R@1 slightly above the paper value (61.71% vs 61.09%). Features loaded from Drive cache (`vigor_cross_features.pt`), metrics computed in ~15 seconds.
+
+---
+
+### 13. U1652 Pair Selection
+
+5 successful and 3 failed query-gallery pairs selected from the test set similarity matrix for XAI visualization.
+
+- Successful: all have sim ≥ 0.85, same ID matched correctly
+- Failed: true IDs 0010 and 0013, top-1 retrieval returned wrong gallery (IDs -001 and 0113)
+
+---
+
+### 14. Bug Fix — U1652 Path Lookup (2026-06-05)
+
+Cell 31 was using `query_dataset.samples` to get image paths. `U1652DatasetEval` does not have a `.samples` attribute — paths are stored in `.images` (a flat `list[str]`, one path per image, built in `__init__` at `dataset/university.py:202`).
+
+Fixed: `q_paths = query_dataset.images`, `g_paths = gallery_dataset.images`. `get_path(paths, idx)` simplified to a direct index lookup.
 
 **Results (Colab A100, 2026-06-05):**
 
