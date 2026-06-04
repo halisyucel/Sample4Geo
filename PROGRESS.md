@@ -272,7 +272,48 @@ Removes FutureWarning on PyTorch ≥ 2.4.
 
 ---
 
-#### 9.8 DataLoader Performance Optimizations
+#### 9.9 Feature & Metric Caching (Drive persistence across sessions)
+
+**Problem:** Colab sessions are ephemeral — closing the tab loses all computed state. Feature extraction takes 2h+ per dataset; running it on every session is not viable.
+
+**Solution:** cache everything to `MyDrive/vision-datasets/xai_cache/` as `.pt` / `.json` files.
+
+Cache files created:
+
+| File | Contents | Size (est.) |
+|---|---|---|
+| `u1652_features.pt` | q_feats, g_feats, q_ids, g_ids (float32) | ~160MB |
+| `u1652_metrics.json` | r1, result_str | bytes |
+| `vigor_same_features.pt` | ref_feats, ref_labels, q_feats, q_labels | ~520MB |
+| `vigor_same_metrics.json` | r1, result_str | bytes |
+| `vigor_cross_features.pt` | same as above | ~520MB |
+| `vigor_cross_metrics.json` | r1, result_str | bytes |
+
+**Total cache size:** ~1.2GB (embedding vectors, not images — 96GB dataset compressed to ~1.2GB of features).
+
+**Session flow after first run:**
+- features: `.pt` → `torch.load` → seconds
+- metrics: `.json` → `json.load` → instant
+- `evaluate()`, `predict()`, model reload for eval: **entirely skipped**
+- Only model load that remains: for GradCAM/Occlusion (model needed for inference)
+
+**Code changes:**
+- `evaluate/university.py`: added `precomputed` parameter — skips internal `predict()` when features are passed in
+- `evaluate/vigor.py`: same
+- Notebook cell 13: `predict()` wrapped with cache check; stores as `q_feats_u / g_feats_u / q_ids_u / g_ids_u`
+- Notebook cell 14: passes `precomputed=` to `evaluate()`, wraps metrics in cache check
+- Notebook cell 16 (`run_vigor_eval`): full cache support for both features and metrics
+- Notebook cell 28: removed model reload + predict entirely; aliases `q_feats_u` directly
+- Notebook cell 39 (VIGOR XAI): tries `precomputed_same/cross` from memory first, falls back to Drive cache, raises if neither exists
+
+---
+
+#### 9.10 Notebook review fixes
+
+Full notebook review after all changes revealed:
+- **Cell 35 markdown** was showing old forward-pass count (576 with stride=16); updated to "121 positions → 4 batched forward passes" (stride=32, batch=32)
+- **VIGOR occlusion failed pairs cell was missing** entirely from Section 11; added after the successful-pairs cell
+- **`cfg_tmp` in `run_vigor_eval`** was a redundant alias of `cfg`; removed
 
 Instead of copying data, optimized the DataLoader pipeline to better overlap Drive I/O and GPU compute:
 
@@ -287,9 +328,27 @@ Also applied to VIGOR DataLoaders (which were previously hardcoded at `batch_siz
 
 **Realistic expectation:** Drive I/O remains the fundamental ceiling, but better pipelining should bring U1652 feature extraction from ~2h9m down to ~30-50 min.
 
----
+#### 9.11 XAI Checkpoint — Drive-backed results with skip logic
 
-## Up Next
+**Problem:** XAI loops (GradCAM, Occlusion) take time per pair. If Colab session dies mid-loop, all computed heatmaps are lost (were saved to `/content/` local disk).
+
+**Solution:**
+1. `RESULTS_DIR` moved from `f'{REPO_DIR}/xai_results'` → `f'{DRIVE_ROOT}/xai_results'`. Every `plt.savefig()` call now writes directly to Drive in real time — no end-of-session copy needed.
+
+2. Skip logic added to all 8 XAI loop cells (U1652 GradCAM successful/failed, U1652 Occlusion successful/failed, VIGOR GradCAM successful/failed, VIGOR Occlusion successful/failed):
+```python
+if os.path.exists(save_path):
+    print(f'skipping #{i} — already saved.')
+    continue
+```
+On resume, already-saved pairs are detected and skipped; only remaining pairs are computed.
+
+3. Final "save to Drive" cell simplified — since `RESULTS_DIR` is already on Drive, the old `shutil.copytree` was removed; cell now just verifies the output directory and lists saved files.
+
+**Combined with the feature cache (9.9), a resumed session now:**
+- Loads features + metrics in seconds
+- Skips already-generated heatmaps
+- Only computes what is genuinely missing
 
 1. **Run notebook on Colab**
    - ~~Section 3: University-1652 baseline~~ ✅ R@1=92.66%
