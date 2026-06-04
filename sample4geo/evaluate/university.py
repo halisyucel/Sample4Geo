@@ -9,14 +9,17 @@ def evaluate(config,
                   model,
                   query_loader,
                   gallery_loader,
+                  precomputed=None,
                   ranks=[1, 5, 10],
                   step_size=1000,
                   cleanup=True):
-    
-    
-    print("Extract Features:")
-    img_features_query, ids_query = predict(config, model, query_loader)
-    img_features_gallery, ids_gallery = predict(config, model, gallery_loader)
+
+    if precomputed is not None:
+        img_features_query, ids_query, img_features_gallery, ids_gallery = precomputed
+    else:
+        print("Extract Features:")
+        img_features_query, ids_query = predict(config, model, query_loader)
+        img_features_gallery, ids_gallery = predict(config, model, gallery_loader)
     
     gl = ids_gallery.cpu().numpy()
     ql = ids_query.cpu().numpy()

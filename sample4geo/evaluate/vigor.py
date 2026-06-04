@@ -10,15 +10,18 @@ from ..trainer import predict
 def evaluate(config,
              model,
              reference_dataloader,
-             query_dataloader, 
+             query_dataloader,
+             precomputed=None,
              ranks=[1, 5, 10],
              step_size=1000,
              cleanup=True):
-    
-    
-    print("\nExtract Features:")
-    reference_features, reference_labels = predict(config, model, reference_dataloader) 
-    query_features, query_labels = predict(config, model, query_dataloader)
+
+    if precomputed is not None:
+        reference_features, reference_labels, query_features, query_labels = precomputed
+    else:
+        print("\nExtract Features:")
+        reference_features, reference_labels = predict(config, model, reference_dataloader)
+        query_features, query_labels = predict(config, model, query_dataloader)
     
     print("Compute Scores:")
     r1 =  calculate_scores(query_features, reference_features, query_labels, reference_labels, step_size=step_size, ranks=ranks) 
