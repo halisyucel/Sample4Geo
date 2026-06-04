@@ -245,19 +245,17 @@ Tried to use `jupyter-mcp-server` (datalayer) to edit the notebook interactively
 1. MCP server v1.0.0 introduced a breaking change requiring `MCP_TOKEN` in the client config — this was missing from `~/.config/opencode/opencode.json`. Added `"MCP_TOKEN": ""` to the environment block.
 2. Even after connecting, `read_notebook` / `read_cell` returned 404 because those tools use the `/api/collaboration/session/` endpoint which requires the `jupyter-collaboration` extension to be active. The extension was installed (`jupyter-collaboration==4.0.2`) but the endpoint was not responding correctly with the running server config.
 
-#### 9.5 Dataset Copy to Local Disk
+#### 9.5 Dataset Local Copy — Attempted and Reverted
 
 After the first Colab run, feature extraction took **2h 9m** for U1652 on an A100 — entirely due to Drive I/O latency when reading 37,855 small files (~26s/batch). GPU utilization was near zero.
 
-Fix: added two copy cells to Section 2 of the notebook that copy datasets to Colab local disk before eval:
+First attempt: add `shutil.copytree` cells to Section 2 to copy datasets to `/content/` before eval.
 
-| Dataset | Source (Drive) | Destination (local) | Est. copy time |
-|---|---|---|---|
-| U1652 test | `vision-datasets/University-Release/test/` | `/content/u1652/` | ~3-5 min |
-| VIGOR | `vision-datasets/VIGOR/{city}/panorama+satellite/` | `/content/vigor_local/` | ~10-20 min |
+**Problem:** U1652 test ≈ 18GB, VIGOR ≈ 96GB. Copying from Drive to local via Colab's Fuse mount is just as slow as reading — both go through the same Drive API layer. Zipping first was also ruled out (too large to zip on user's machine, and zipping on Colab reads from Drive which hits the same bottleneck).
 
-VIGOR splits (small `.txt` files) still symlink to Drive. Copy is skipped if already present (idempotent).  
-`cfg_u.query_folder_test` and `cfg_u.gallery_folder_test` updated to point to local paths.
+**Resolution:** Reverted entirely. Eval is a one-time operation per session — run overnight and move on. See 9.8 for the adopted optimization instead.
+
+---
 
 #### 9.6 `trainer.py` — autocast Fix
 
@@ -267,10 +265,34 @@ Removes FutureWarning on PyTorch ≥ 2.4.
 
 ---
 
+#### 9.7 `trainer.py` — inference_mode
+
+`torch.no_grad()` → `torch.inference_mode()` in `predict()`.  
+`inference_mode` disables autograd more aggressively, slightly faster for pure inference.
+
+---
+
+#### 9.8 DataLoader Performance Optimizations
+
+Instead of copying data, optimized the DataLoader pipeline to better overlap Drive I/O and GPU compute:
+
+| Parameter | Before | After | Reason |
+|---|---|---|---|
+| `batch_size` | 128 | 256 | A100 40GB handles ConvNeXt-Base@384×384 at batch 256 easily; halves batch overhead |
+| `num_workers` | 4 | 16 | More parallel Drive reads |
+| `prefetch_factor` | 2 (default) | 4 | Workers pre-fetch more batches ahead of GPU |
+| `persistent_workers` | False | True | Workers stay alive between batches, no respawn overhead |
+
+Also applied to VIGOR DataLoaders (which were previously hardcoded at `batch_size=128, num_workers=4` instead of reading from `VigorConfig`).
+
+**Realistic expectation:** Drive I/O remains the fundamental ceiling, but better pipelining should bring U1652 feature extraction from ~2h9m down to ~30-50 min.
+
+---
+
 ## Up Next
 
 1. **Run notebook on Colab**
-   - Section 3: University-1652 baseline (expected R@1 ≈ 95% on CUDA)
+   - ~~Section 3: University-1652 baseline~~ ✅ R@1=92.66%
    - Section 4: VIGOR same-area and cross-area baselines
    - Sections 6–11: full XAI pipeline for both datasets
 

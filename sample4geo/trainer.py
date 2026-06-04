@@ -126,7 +126,7 @@ def predict(train_config, model, dataloader):
     img_features_list = []
     
     ids_list = []
-    with torch.no_grad():
+    with torch.inference_mode():
         
         for img, ids in bar:
         
