@@ -473,3 +473,36 @@ This forces a clean re-import of all `sample4geo.*` submodules every time the ce
 A previous cleanup pass (removing `cfg_tmp`) left an orphan `'        '` line (8 spaces, no newline) in the cell source JSON. Python tokenizer concatenated it with the next line, producing 16-space indentation inside an `else:` block.
 
 Fixed: removed the orphan line from the notebook JSON directly.
+
+---
+
+### 15. Bug Fix — VIGOR Pair Selection `ValueError` (2026-06-07)
+
+Cell 40 (`# pair selection for vigor`) crashed with:
+
+```
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+```
+
+**Root cause:** For VIGOR, `VigorDatasetEval` stores query labels as a 2D array of shape `(N, 4)` — one row per query, four columns: `[sat, sat_np1, sat_np2, sat_np3]` (primary positive + 3 near-positives). So `q_ids_v_np[i]` returns a `(4,)` array, not a scalar. The original code did `true_id = q_ids_v_np[i]` and then `if top1_id == true_id` — comparing a scalar to a length-4 array triggers the ambiguous truth value error.
+
+**Fix:**
+
+```python
+# before
+true_id  = q_ids_v_np[i]
+if top1_id == true_id and len(vigor_successful) < 5:
+    ...
+elif top1_id != true_id and len(vigor_failed) < 3:
+    correct_idxs = np.where(g_ids_v_np == true_id)[0]
+
+# after
+true_ids = q_ids_v_np[i]          # shape (4,): [sat, sat_np1, sat_np2, sat_np3]
+true_id  = int(true_ids[0])       # primary positive satellite index
+if top1_id in true_ids and len(vigor_successful) < 5:
+    ...
+elif top1_id not in true_ids and len(vigor_failed) < 3:
+    correct_idxs = np.where(g_ids_v_np == true_id)[0]
+```
+
+`in` / `not in` checks against the full 4-element positive set, consistent with how VIGOR evaluation counts a hit. `true_id = int(true_ids[0])` extracts the primary positive as a scalar for the `np.where` lookup used in failed pairs.
