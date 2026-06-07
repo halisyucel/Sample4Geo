@@ -1,8 +1,8 @@
 # Notebook Inspection Method
 
-Colab'da çalışan notebook'un tüm cell output'larını ve hatalarını okumak için kullanılan Python yöntemi.
+Python-based method for reading all cell outputs and errors from a running Colab notebook.
 
-## Kullanım
+## Usage
 
 ```python
 import json, re
@@ -18,35 +18,35 @@ for i, cell in enumerate(nb['cells']):
     print(f'\n=== CELL {i} ({cell["cell_type"]}) ===')
 
     for out in outputs:
-        # hata output'u
+        # error output
         if out.get('output_type') == 'error':
             print(f'ERROR: {out.get("ename")}: {out.get("evalue")}')
             for line in out.get('traceback', [])[-6:]:
-                print(re.sub(r'\x1b\[[0-9;]*m', '', line))  # ANSI renk kodlarını temizle
+                print(re.sub(r'\x1b\[[0-9;]*m', '', line))  # strip ANSI color codes
 
-        # normal metin output'u (print, stdout)
+        # text output (print, stdout)
         else:
             text = ''.join(out.get('text', out.get('data', {}).get('text/plain', [])))
             if text.strip():
                 print(text.strip()[:400])
 ```
 
-## Nasıl Çalışır
+## How It Works
 
-`.ipynb` dosyası aslında bir JSON dosyasıdır. Her cell'in `outputs` alanı şu tipleri içerebilir:
+A `.ipynb` file is a JSON document. Each cell has an `outputs` field that can contain the following types:
 
-| `output_type` | Ne anlama gelir | İlgili alanlar |
+| `output_type` | Meaning | Relevant fields |
 |---|---|---|
-| `stream` | `print()` veya `sys.stdout` çıktısı | `text` (list of str) |
-| `execute_result` | cell'in return değeri | `data["text/plain"]` |
-| `display_data` | `plt.show()`, `Image()` gibi görsel çıktılar | `data["text/plain"]`, `data["image/png"]` |
+| `stream` | `print()` or `sys.stdout` output | `text` (list of str) |
+| `execute_result` | cell return value | `data["text/plain"]` |
+| `display_data` | visual output (`plt.show()`, `Image()`, etc.) | `data["text/plain"]`, `data["image/png"]` |
 | `error` | exception | `ename`, `evalue`, `traceback` |
 
-`traceback` içindeki ANSI escape kodları (`\x1b[...m`) terminal renkleri için kullanılır; terminal dışında okunaksız görünür, `re.sub` ile temizlenir.
+The `traceback` field contains ANSI escape codes (`\x1b[...m`) for terminal colors. These are unreadable outside a terminal and are stripped with `re.sub`.
 
 ## Cell Index Mapping
 
-Notebook'taki cell index'i (0-based, tüm cell'ler) ile Colab'daki görsel sıra aynı değildir çünkü markdown cell'leri de sayılır. Code cell numarasını bulmak için:
+The cell index in the notebook JSON (0-based, all cells) differs from the visual order in Colab because markdown cells are also counted. To map code cell numbers:
 
 ```python
 code_cells = [(i, cell) for i, cell in enumerate(nb['cells']) if cell['cell_type'] == 'code']
@@ -55,9 +55,9 @@ for idx, (i, cell) in enumerate(code_cells):
     print(f'code cell #{idx+1}  (nb index {i}): {src}')
 ```
 
-## Cell Source'u Düzenleme
+## Editing Cell Source
 
-Bir cell'in içeriğini değiştirmek için:
+To modify a cell's content directly in the JSON:
 
 ```python
 cell = nb['cells'][TARGET_INDEX]
@@ -66,10 +66,10 @@ src = ''.join(cell['source'])
 src = src.replace('old_code', 'new_code')
 
 cell['source'] = src.splitlines(keepends=True)
-cell['outputs'] = []  # eski output'u temizle (opsiyonel)
+cell['outputs'] = []  # optionally clear stale outputs
 
 with open('notebooks/sample4geo-xai.ipynb', 'w') as f:
     json.dump(nb, f, indent=1, ensure_ascii=False)
 ```
 
-> `splitlines(keepends=True)` her satırı `\n` ile birlikte liste eleman olarak saklar; bu Jupyter'ın beklediği formattır.
+> `splitlines(keepends=True)` stores each line as a list element with its trailing `\n`, which is the format Jupyter expects.
