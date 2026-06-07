@@ -506,3 +506,26 @@ elif top1_id not in true_ids and len(vigor_failed) < 3:
 ```
 
 `in` / `not in` checks against the full 4-element positive set, consistent with how VIGOR evaluation counts a hit. `true_id = int(true_ids[0])` extracts the primary positive as a scalar for the `np.where` lookup used in failed pairs.
+
+---
+
+### 16. Notebook Section 13 — Display Saved Results (2026-06-07)
+
+XAI figures are saved directly to Drive as they are generated, but skipped pairs produce no inline output in the notebook — reopening the notebook after a completed run showed no visuals at all.
+
+**Fix:** Added Section 13 (`## 13. Display Saved Results`) at the end of the notebook with a single code cell that reads all saved PNGs from Drive and renders them inline via `matplotlib.image.imread` + `plt.imshow`.
+
+`display_folder(title, folder, filter_prefix)` filters by filename prefix so figures are shown in logical order:
+
+| Call | Prefix | Folder |
+|---|---|---|
+| GradCAM — U1652 successful | `u1652_successful` | `gradcam/` |
+| GradCAM — U1652 failed | `u1652_failed` | `gradcam/` |
+| GradCAM — VIGOR same successful | `vigor_same_successful` | `gradcam/` |
+| GradCAM — VIGOR same failed | `vigor_same_failed` | `gradcam/` |
+| Occlusion — U1652 successful | `u1652_successful` | `occlusion/` |
+| Occlusion — U1652 failed | `u1652_failed` | `occlusion/` |
+| Occlusion — VIGOR same successful | `vigor_same_successful` | `occlusion/` |
+| Occlusion — VIGOR same failed | `vigor_same_failed` | `occlusion/` |
+
+Each figure is rendered at `20×10` inches. The section is purely read-only — no model or feature state required, can be run independently at any time.
