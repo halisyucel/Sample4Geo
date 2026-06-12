@@ -12,7 +12,7 @@
 
 | Member | Dataset |
 |---|---|
-| Halis Yücel | VIGOR (NYC, Seattle, San Francisco, Chicago) |
+| İsa Halis Yücel | VIGOR (NYC, Seattle, San Francisco, Chicago) |
 | Kuzey Ersoy | University-1652 |
 
 ---
@@ -210,7 +210,7 @@ All code cells were updated for consistency:
 #### 9.3 Intro Cell Updated
 
 - Added course code: **BBM416**
-- Added group members: Halis Yücel (VIGOR) and Kuzey Ersoy (University-1652)
+- Added group members: İsa Halis Yücel (VIGOR) and Kuzey Ersoy (University-1652)
 - Added public Drive link for datasets & weights:  
   https://drive.google.com/drive/folders/1m85pmQhE_iMRUbc173Z81Gs3ID5-wD2C?usp=sharing
 
