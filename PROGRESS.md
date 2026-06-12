@@ -574,11 +574,47 @@ This is **not a bug** and is actually analytically interesting: it demonstrates 
 
 ---
 
-#### 17.4 Video / Presentation Preparation — Pending
+#### 17.4 Video / Presentation Preparation — Completed (2026-06-12)
 
-The following notebook additions are needed to make the notebook presentation-ready for the project video:
+The following additions were made to make the notebook presentation-ready:
 
-1. **Section 5 (XAI Setup)** — add a "What to expect" markdown after the class definitions, explaining what each method should highlight for geo-localization.
-2. **Sections 7–8 (U1652 XAI)** — add observation markdown after GradCAM and Occlusion cells summarising what was found.
-3. **Sections 10–11 (VIGOR XAI)** — same as above for VIGOR.
-4. **Section 12 (Analysis)** — fill in the analysis scaffold with the observations above; update the results summary to use actual VIGOR metrics (done in revision 9.10).
+1. **Section 5.4 "What to Expect"** — new markdown cell after visualization helpers, explaining what GradCAM and Occlusion Sensitivity should highlight for geo-localization (distinctive structures, spatial layout cues, cross-view consistent regions).
+2. **"Observations — University-1652 XAI"** — new markdown after Section 8 (failed occlusion cell) summarising GradCAM and Occlusion findings for U1652.
+3. **"Observations — VIGOR XAI"** — new markdown after Section 11 (VIGOR failed occlusion cell) summarising VIGOR findings.
+4. **Section 12 Analysis** — fully written: baseline results table, GradCAM vs Occlusion comparison, successful vs failed analysis, faithfulness interpretation, U1652 vs VIGOR comparison.
+5. **Results summary cell** — VIGOR metrics filled in (no longer "pending").
+6. **Intro cell** — student numbers added: İsa Halis Yücel (2220356137), Kuzey Ersoy (2230356168).
+
+---
+
+### 18. GradCAM Faithfulness — Added (2026-06-12)
+
+**Motivation:** GradCAM figures previously showed 3 columns (Original, GradCAM heatmap, Overlay). Faithfulness curves existed only for Occlusion Sensitivity. Adding faithfulness to GradCAM enables direct method comparison and strengthens the quantitative analysis.
+
+**Implementation:**
+
+`show_gradcam` updated to accept optional `q_faith` / `g_faith` parameters (same API as `show_occlusion`). When provided, a 4th column (Faithfulness curve, steel-blue colour) is shown — blue for GradCAM, crimson for Occlusion, visually distinct.
+
+In each of the 4 GradCAM cells (U1652 successful/failed, VIGOR successful/failed), after `generate_pair_cam`:
+
+```python
+with torch.no_grad():
+    g_emb = model(g_t)
+    q_emb = model(q_t)
+
+q_faith = _occ_faith.compute_faithfulness(q_t, g_emb, q_cam, steps=FAITH_STEPS)
+g_faith = _occ_faith.compute_faithfulness(g_t, q_emb, g_cam, steps=FAITH_STEPS)
+```
+
+`compute_faithfulness` is called with the GradCAM importance map — it sorts pixels by GradCAM importance and progressively masks them, measuring cosine similarity at each step. This is method-agnostic and works with any numpy importance map.
+
+`FAITH_STEPS = 10` defined at the top of cell 34 (before Section 8 where it is normally declared) so Section 7 cells can run independently.
+
+**Observations from the new figures (run 2026-06-12, A100):**
+
+- **U1652 Successful:** Both query and gallery faithfulness curves drop cleanly from ~0.89 to ~0.32 over 100% masking. Monotonically decreasing — GradCAM correctly identifies the most discriminative pixels.
+- **U1652 Failed:** Query faithfulness drops cleanly (model attends to correct regions in the query), but gallery faithfulness is flatter and slower to degrade — the wrong gallery image has no strong anchor, so masking any region has only mild effect. Visually the gallery GradCAM is nearly uniform (diffuse activation), confirming the model cannot localise a discriminative region in the wrong match.
+- **VIGOR Successful:** Gallery faithfulness is clean. Query faithfulness shows a small non-monotonic bump around 60–80% — typical of VIGOR's harder cross-view problem.
+- **VIGOR Failed (metro):** Both query and gallery faithfulness are strongly non-monotonic. The gallery curve hits a sharp trough (~0.03) around 60% then recovers — masking certain pixels that are artificially boosting similarity to the wrong target causes a sudden drop, then the remaining signal partially recovers. This is the clearest example in the dataset of GradCAM identifying misleading features.
+
+**Files affected:** `notebooks/sample4geo-xai.ipynb` cells 26, 34, 35, 45, 46. All 16 GradCAM Drive figures regenerated (old 6-panel files deleted from Drive, replaced with new 8-panel figures).
