@@ -529,3 +529,56 @@ XAI figures are saved directly to Drive as they are generated, but skipped pairs
 | Occlusion — VIGOR same failed | `vigor_same_failed` | `occlusion/` |
 
 Each figure is rendered at `20×10` inches. The section is purely read-only — no model or feature state required, can be run independently at any time.
+
+---
+
+### 17. XAI Output Review — Visual Observations (2026-06-12)
+
+Full review of all 32 generated XAI figures after the complete pipeline run.
+
+---
+
+#### 17.1 GradCAM — General Observations
+
+GradCAM results are visually compelling and semantically coherent across both datasets.
+
+**University-1652 (drone ↔ satellite):**
+- Successful pairs: the drone query consistently attends to building edges and rooftop transitions; the satellite gallery attends to the same building footprints. The correspondence is clear and meaningful.
+- Failed pairs: the gallery (wrong satellite) shows diffuse, uniform activation spread across the entire image — the model cannot find a dominant discriminative region, which manifests as scattered high activation. This "confused" activation pattern is a useful XAI observation.
+
+**VIGOR (street panorama ↔ satellite):**
+- Successful pairs: street queries focus on landmark structures in the panorama (buildings, tree-lines); satellite gallery focuses on the corresponding road junction or structural boundary. Coherent cross-view attention.
+- Failed pairs: the classic failure case is a street view under an elevated metro/rail structure — the model attends to the overhead steel structure, a feature that is not well-visible or well-matched in the satellite view. This illustrates why cross-view localization fails in structurally ambiguous scenes.
+
+---
+
+#### 17.2 Occlusion Sensitivity — Observations and Limitations
+
+**Observations:**
+- Important regions identified by occlusion broadly agree with GradCAM (same structural features highlighted), which cross-validates both methods.
+- Faithfulness curves for **successful pairs** are mostly monotonically decreasing — masking the most important pixels progressively reduces cosine similarity, validating that the heatmap correctly identifies discriminative regions.
+- Faithfulness curves for **failed pairs** show **non-monotonic behaviour** (especially in the gallery curve): similarity can temporarily *increase* when some pixels are masked. Interpretation: in failed matches, the model attends to misleading features that are artificially boosting similarity to the wrong target; removing those regions briefly improves the match quality before full masking degrades it. This is an interesting negative-explanation signal.
+
+**Known limitation — coarse resolution:**
+- Parameters: `patch_size=64, stride=32`, input `384×384` → `((384−64)/32 + 1)² = 121` positions → 4 batched forward passes per image.
+- At this stride, each importance cell covers a 64×64 patch (1/6 of the image width), producing a visibly blocky heatmap. This is a deliberate trade-off between runtime and resolution (naive stride=8 would require ~300 forward passes per image).
+- The coarseness is sufficient for qualitative analysis and localising general regions of interest, but should be acknowledged as a limitation in the report.
+
+---
+
+#### 17.3 U1652 Pair Selection — Same-Class Bias
+
+All 5 successful University-1652 pairs belong to `id=0003` (5 different drone images of the same building, all correctly retrieving the same satellite image). This is a result of greedy sequential selection — the code picks the first 5 successful queries it encounters, and since queries are sorted by class ID, the first class fills all 5 slots.
+
+This is **not a bug** and is actually analytically interesting: it demonstrates that the model is robust to viewpoint variation within a single location (5 different drone angles all match correctly with high similarity ≥ 0.86). However, for presentation purposes the diversity is limited — all 5 figures show the same building from slightly different angles. This should be noted in the report/video.
+
+---
+
+#### 17.4 Video / Presentation Preparation — Pending
+
+The following notebook additions are needed to make the notebook presentation-ready for the project video:
+
+1. **Section 5 (XAI Setup)** — add a "What to expect" markdown after the class definitions, explaining what each method should highlight for geo-localization.
+2. **Sections 7–8 (U1652 XAI)** — add observation markdown after GradCAM and Occlusion cells summarising what was found.
+3. **Sections 10–11 (VIGOR XAI)** — same as above for VIGOR.
+4. **Section 12 (Analysis)** — fill in the analysis scaffold with the observations above; update the results summary to use actual VIGOR metrics (done in revision 9.10).
